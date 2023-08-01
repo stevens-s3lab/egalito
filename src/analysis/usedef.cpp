@@ -2034,11 +2034,11 @@ void UseDef::fillCMov(UDState *state, AssemblyPtr assembly) {
         size_t width = inferAccessWidth(
             &assembly->getAsmOperands()->getOperands()[1]);
         fillMemToReg(state, assembly, width);
-        LOG(1, "CMOV MEM TO REG");
+        //LOG(1, "CMOV MEM TO REG");
     }
     else if(mode == AssemblyOperands::MODE_REG_REG) {
         fillRegToReg(state, assembly);
-        LOG(1, "CMOV REG TO REG");
+        //LOG(1, "CMOV REG TO REG");
     }
     else {
         LOG(1, "CMOV skipping mode " << mode);
