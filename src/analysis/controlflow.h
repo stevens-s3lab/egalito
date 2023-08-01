@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <map>
-#include <string.h>
+#include <string>
 #include "analysis/graph.h"
 #include "util/iter.h"
 
