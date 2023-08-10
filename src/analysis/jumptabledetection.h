@@ -24,12 +24,13 @@ private:
         address_t targetBase;
         address_t tableBase;
         size_t scale;
+        int signedOrZero;
         long entries;
 
         JumptableInfo(ControlFlowGraph *cfg, UDRegMemWorkingSet *working,
             UDState *state)
             : cfg(cfg), working(working), jumpState(state), valid(false),
-              targetBase(0), tableBase(0), scale(0), entries(0) {}
+              targetBase(0), tableBase(0), scale(0), entries(0), signedOrZero(1) {}
     };
 
     struct IndextableInfo {

@@ -26,12 +26,13 @@ private:
     Register indexRegister;
     int scale;
     long bound;
+    int signedOrZero;
 public:
     JumpTableDescriptor(Function *function, Instruction *instruction)
         : function(function), instruction(instruction),
         address(0), contentSection(nullptr), targetBaseLink(nullptr),
         indexExpr(nullptr), indexRegister(INVALID_REGISTER), scale(1),
-        bound(LONG_MAX) {}
+        bound(LONG_MAX), signedOrZero(1) {}
 
     Function *getFunction() const { return function; }
     Instruction *getInstruction() const { return instruction; }
@@ -41,6 +42,7 @@ public:
     TreeNode *getIndexExpr() const { return indexExpr; }
     Register getIndexRegister() const { return indexRegister; }
     int getScale() const { return scale; }
+    int getSignedOrZero() const { return signedOrZero; }
     long getBound() const { return bound; }
     bool isBoundKnown() const { return bound != LONG_MAX; }
     long getEntries() const;
@@ -53,6 +55,7 @@ public:
     void setScale(int scale) { this->scale = scale; }
     void setBound(long bound) { this->bound = bound; }
     void setEntries(long entries) { this->bound = entries - 1; }
+    void setSignedOrZero(int signedOrZero) { this->signedOrZero = signedOrZero; }
 };
 
 #if 0

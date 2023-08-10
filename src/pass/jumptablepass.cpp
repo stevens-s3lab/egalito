@@ -145,17 +145,35 @@ size_t JumpTablePass::makeChildren(JumpTable *jumpTable, int count) {
         address_t offset = elfSection->convertVAToOffset(address);
         auto p = tableReadPtr + offset;
         ptrdiff_t value;
-        switch(descriptor->getScale()) {
-        case 1:
-            value = *reinterpret_cast<int8_t *>(p);
-            break;
-        case 2:
-            value = *reinterpret_cast<int16_t *>(p);
-            break;
-        case 4:
-        default:
-            value = *reinterpret_cast<int32_t *>(p);
-            break;
+        if(descriptor->getSignedOrZero() == 1)
+        {
+            switch(descriptor->getScale()) {
+            case 1:
+                value = *reinterpret_cast<int8_t *>(p);
+                break;
+            case 2:
+                value = *reinterpret_cast<int16_t *>(p);
+                break;
+            case 4:
+            default:
+                value = *reinterpret_cast<int32_t *>(p);
+                break;
+            }
+        }
+        else
+        {
+            switch(descriptor->getScale()) {
+            case 1:
+                value = static_cast<uint8_t>(*reinterpret_cast<unsigned char *>(p));
+                break;
+            case 2:
+                value = static_cast<uint16_t>(*reinterpret_cast<unsigned char *>(p));
+                break;
+            case 4:
+            default:
+                value = static_cast<uint32_t>(*reinterpret_cast<unsigned char *>(p));
+                break;
+            }
         }
 #ifdef ARCH_AARCH64
         // We only see the scale of 4 for hand-crafted jump tables in
@@ -165,8 +183,19 @@ size_t JumpTablePass::makeChildren(JumpTable *jumpTable, int count) {
             value *= 4;
         }
 #endif
+
+
         auto targetBase = descriptor->getTargetBaseLink()->getTargetAddress();
-        address_t target = targetBase + value;
+        address_t target;
+        if(descriptor->getSignedOrZero() == 0)
+        {
+            target = targetBase + (unsigned int)value;
+        }
+        else 
+        {
+            target = targetBase + value;
+        }
+
         LOG(2, "    jump table entry " << i << " @ 0x" << std::hex << target);
 
         Chunk *inner = ChunkFind().findInnermostInsideInstruction(
