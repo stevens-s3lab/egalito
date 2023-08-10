@@ -111,11 +111,14 @@ void ElfDynamic::setupSearchPath() {
         parentPath=currentPath.substr(0,index);
     }
 
-    //std::string libPath = parentPath + "/binaries/final";
+    std::string libPath = parentPath + "/binaries/final";
+    std::string otherlibPath = parentPath + "/binaries/final/others";
     std::string libcPath = parentPath + "/binaries/final/libc";
 
     //searchPath.push_back(cfs->transform(libPath));
-    searchPath.push_back(cfs->transform(libcPath));
+    //searchPath.push_back(cfs->transform(otherlibPath));
+
+    //searchPath.push_back(cfs->transform(libcPath));
 
     if(musl) {
         parseMuslLdConfig(cfs->transform("/etc/ld-musl-x86_64.path"), searchPath);
