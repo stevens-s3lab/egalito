@@ -14,10 +14,7 @@
 DefList::~DefList() {
     for(auto tn : list) 
     {
-        if(!tn.second)
-        {
-            delete tn.second;
-        }
+        delete tn.second;
     }
 }
 
