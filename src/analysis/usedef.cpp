@@ -12,7 +12,13 @@
 #include "log/log.h"
 
 DefList::~DefList() {
-    for(auto tn : list) delete tn.second;
+    for(auto tn : list) 
+    {
+        if(!tn.second)
+        {
+            delete tn.second;
+        }
+    }
 }
 
 void DefList::set(int reg, TreeNode *tree) {
