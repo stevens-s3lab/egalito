@@ -49,6 +49,16 @@ void DefList::dump() const {
 }
 
 
+void MemDefList::dump() const {
+        auto lhsTree = this->lhs;
+        auto rhsTree = this->rhs;
+        IF_LOG(1) lhsTree->print(TreePrinter(0, 0));
+        LOG0(1, " : ");
+        IF_LOG(1) rhsTree->print(TreePrinter(0, 0));
+        LOG(1, "");
+}
+
+
 void RefList::set(int reg, UDState *origin) {
     list[reg] = {origin};
 }
@@ -252,6 +262,12 @@ void RegMemState::dumpMemState() const {
     // this is empty for the first pass
     LOG(1, "mem use list:");
     memUseList.dump();
+
+    LOG(1, "memory definition list");
+    if(!memDefList.empty())
+    {
+        memDefList.dump();    
+    }
 }
 
 
@@ -391,6 +407,8 @@ const std::map<int, UseDef::HandlerType> UseDef::handlers = {
     {X86_INS_SHL,       &UseDef::fillAddOrSubOrShift},
     {X86_INS_SHR,       &UseDef::fillAddOrSubOrShift},
     {X86_INS_SUB,       &UseDef::fillAddOrSubOrShift},
+    {X86_INS_ROL,       &UseDef::fillAddOrSubOrShift},
+    {X86_INS_ROR,       &UseDef::fillAddOrSubOrShift},
     {X86_INS_SYSCALL,   &UseDef::fillSyscall},
     {X86_INS_XOR,       &UseDef::fillXor},
 
@@ -767,7 +785,24 @@ void UseDef::fillRegToReg(UDState *state, AssemblyPtr assembly) {
             reg1, width1);
         tree = TreeFactory::instance().make<TreeNodeLogicalShiftRight>(
             reg1Tree, reg0Tree);
-    } else if(id == X86_INS_MOV
+    } else if(id == X86_INS_ROL) {
+        useReg(state, reg1);
+        auto reg0Tree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg0, width0);
+        auto reg1Tree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg1, width1);
+        tree = TreeFactory::instance().make<TreeNodeRotateLeft>(
+            reg1Tree, reg0Tree);
+    } else if(id == X86_INS_ROR) {
+        useReg(state, reg1);
+        auto reg0Tree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg0, width0);
+        auto reg1Tree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg1, width1);
+        tree = TreeFactory::instance().make<TreeNodeRotateRight>(
+            reg1Tree, reg0Tree);
+    }
+    else if(id == X86_INS_MOV
         || id == X86_INS_MOVSXD
         || id == X86_INS_MOVZX) {
 
@@ -1069,6 +1104,18 @@ void UseDef::fillImmToReg(UDState *state, AssemblyPtr assembly) {
         useReg(state, reg1);
         defReg(state, reg1, destTree);
     }
+    else if(assembly->getId() == X86_INS_ROL) {
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeRotateLeft>(tree1, tree0);
+        useReg(state, reg1);
+        defReg(state, reg1, destTree);
+    }
+    else if(assembly->getId() == X86_INS_ROR) {
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeRotateRight>(tree1, tree0);
+        useReg(state, reg1);
+        defReg(state, reg1, destTree);
+    }
     else if(assembly->getId() == X86_INS_MOV) {
         defReg(state, reg1, tree0);
     }
@@ -1123,6 +1170,83 @@ void UseDef::fillImmToReg(UDState *state, AssemblyPtr assembly) {
         break;
     }
     defReg(state, rd, tree);
+#endif
+}
+
+void UseDef::fillImmToMem(UDState *state, AssemblyPtr assembly) {
+#ifdef ARCH_X86_64
+    auto op0 = assembly->getAsmOperands()->getOperands()[0].imm;
+    auto op1 = assembly->getAsmOperands()->getOperands()[1].mem;
+    size_t width = inferAccessWidth(&assembly->getAsmOperands()->getOperands()[1]);
+    auto memoryTree = makeMemTree(state, op1);
+    auto tree0 = TreeFactory::instance().make<TreeNodeConstant>(op0);
+    if(assembly->getId() == X86_INS_ADD) {
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeAddition>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_SUB) {
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeSubtraction>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_SHL) {
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeLogicalShiftLeft>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_SHR) { 
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeLogicalShiftRight>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_ROL) { 
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeRotateLeft>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_ROR) { 
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeRotateRight>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_MOV) {
+        state->addMemDefinition(memoryTree, tree0);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_MOVABS) {
+        state->addMemDefinition(memoryTree, tree0);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else if(assembly->getId() == X86_INS_AND) { 
+        useMem(state, memoryTree, -1);
+        auto memTree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree,width);
+        auto destTree
+            = TreeFactory::instance().make<TreeNodeAnd>(memTree, tree0);
+        state->addMemDefinition(memoryTree, destTree);
+        working->setAsMemSet(memoryTree, state);
+    }
+    else {
+        throw "error: fillImmToReg";
+    }
 #endif
 }
 
@@ -1265,10 +1389,13 @@ void UseDef::fillRegToMem(UDState *state, AssemblyPtr assembly, size_t width) {
 #ifdef ARCH_X86_64
     auto op0 = assembly->getAsmOperands()->getOperands()[0].reg;
     int reg0;
-    std::tie(reg0, std::ignore) = getPhysicalRegister(op0);
+    size_t width0;
+    std::tie(reg0, width0) = getPhysicalRegister(op0);
     useReg(state, reg0);
 
     auto count = assembly->getAsmOperands()->getOpCount();
+    auto id = assembly->getId();
+
     if(count == 1) {    // push
         int rsp;
         size_t widthRsp;
@@ -1286,14 +1413,59 @@ void UseDef::fillRegToMem(UDState *state, AssemblyPtr assembly, size_t width) {
         memTree = TreeFactory::instance().make<TreeNodeSubtraction>(
             rspTree, TreeFactory::instance().make<TreeNodeConstant>(8));
         defMem(state, memTree, reg0);
+
+        //(rsp - 8) = reg
+        auto regTree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg0, width0);
+        state->addMemDefinition(memTree, regTree);
     }
-    else {  // movl
-        auto memTree = makeMemTree(state,
-            assembly->getAsmOperands()->getOperands()[1].mem);
+    else if(id == X86_INS_ADD) {
+
+            auto memoryTree = makeMemTree(state, assembly->getAsmOperands()->getOperands()[1].mem);
+            useMem(state, memoryTree, reg0);
+            auto tree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree, width);
+
+            auto regTree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg0, width0);
+            auto memTree = TreeFactory::instance().make<TreeNodeAddition>(regTree, tree);
+            if(!memTree) {
+                auto tree1 = TreeFactory::instance().make<TreeNodeConstant>(0);
+                auto tree2 = TreeFactory::instance().make<TreeNodeConstant>(0);
+                memTree = TreeFactory::instance().make<TreeNodeAddition>(tree1, tree2);
+
+
+            }
+            defMem(state, memTree, reg0);
+            state->addMemDefinition(memoryTree, memTree);
+         }
+    else if(id == X86_INS_SUB) {
+        
+
+        auto memoryTree = makeMemTree(state, assembly->getAsmOperands()->getOperands()[1].mem);
+        useMem(state, memoryTree, reg0);
+
+        auto tree = TreeFactory::instance().make<TreeNodeDereference>(memoryTree, width);
+        auto regTree = TreeFactory::instance().make<TreeNodePhysicalRegister>(reg0, width0);
+        auto memTree = TreeFactory::instance().make<TreeNodeSubtraction>(tree, regTree);
         if(!memTree) {
-            memTree = TreeFactory::instance().make<TreeNodeConstant>(0);
+            auto tree1 = TreeFactory::instance().make<TreeNodeConstant>(0);
+            auto tree2 = TreeFactory::instance().make<TreeNodeConstant>(0);
+            memTree = TreeFactory::instance().make<TreeNodeSubtraction>(tree1, tree2);
         }
         defMem(state, memTree, reg0);
+        state->addMemDefinition(memoryTree, memTree);
+        }
+    else // movl
+    {        auto memTree = makeMemTree(state,
+            assembly->getAsmOperands()->getOperands()[1].mem);
+            if(!memTree) {
+                memTree = TreeFactory::instance().make<TreeNodeConstant>(0);
+            }
+
+            defMem(state, memTree, reg0);
+            auto regTree = TreeFactory::instance().make<TreeNodePhysicalRegister>(
+            reg0, width0);
+            state->addMemDefinition(regTree, memTree);
     }
 
 #elif defined(ARCH_AARCH64)
@@ -1789,6 +1961,12 @@ void UseDef::fillAddOrSubOrShift(UDState *state, AssemblyPtr assembly) {
             &assembly->getAsmOperands()->getOperands()[0]);
         fillMemToReg(state, assembly, width);
     }
+    else if(mode == AssemblyOperands::MODE_REG_MEM) {
+        size_t width = inferAccessWidth(
+            &assembly->getAsmOperands()->getOperands()[0]);
+        fillRegToMem(state, assembly, width);
+    }
+
     else {
         LOG(10, "skipping mode " << mode);
     }
@@ -1925,6 +2103,7 @@ void UseDef::fillCmp(UDState *state, AssemblyPtr assembly) {
         auto tree = TreeFactory::instance().make<TreeNodeComparison>(
             tree1, tree0);
         defReg(state, X86Register::FLAGS, tree);
+        useMem(state, memTree, X86Register::FLAGS);
     }
     else {
         defReg(state, X86Register::FLAGS, nullptr);
@@ -2066,6 +2245,11 @@ void UseDef::fillMov(UDState *state, AssemblyPtr assembly) {
     }
     else if(mode == AssemblyOperands::MODE_IMM_REG) {
         fillImmToReg(state, assembly);
+    }
+    else if(mode == AssemblyOperands::MODE_IMM_MEM)
+    {
+        fillImmToMem(state, assembly);
+
     }
     else {
         LOG(10, "skipping mode " << mode);
@@ -2579,8 +2763,24 @@ void MemLocation::extract(TreeNode *tree) {
         TreePatternCapture<TreePatternTerminal<TreeNodeConstant>>
     > MemoryForm;
 
-    TreeCapture cap;
+    typedef TreePatternRecursiveBinary<TreeNodeAddition,
+                TreePatternCapture<TreePatternTerminal<TreeNodePhysicalRegister>>,
+                TreePatternUnary<TreeNodeDereference,
+                            TreePatternCapture<MemoryForm>>>MemoryForm1;
+
+      TreeCapture cap;
     if(MemoryForm::matches(tree, cap)) {
+        for(size_t i = 0; i < cap.getCount(); ++i) {
+            auto c = cap.get(i);
+            if(auto t = dynamic_cast<TreeNodeConstant *>(c)) {
+                offset += t->getValue();
+            }
+            else if(auto t = dynamic_cast<TreeNodePhysicalRegister *>(c)) {
+                reg = t;
+            }
+        }
+    }
+    else if(MemoryForm1::matches(tree,cap)) {
         for(size_t i = 0; i < cap.getCount(); ++i) {
             auto c = cap.get(i);
             if(auto t = dynamic_cast<TreeNodeConstant *>(c)) {
