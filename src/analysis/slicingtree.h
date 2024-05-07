@@ -197,6 +197,11 @@ public:
     TreeNodeRotateRight(TreeNode *left, TreeNode *right)
         : TreeNodeBinary(left, right, "r>>") {}
 };
+class TreeNodeRotateLeft : public TreeNodeBinary {
+public:
+    TreeNodeRotateLeft(TreeNode *left, TreeNode *right)
+        : TreeNodeBinary(left, right, "r<<") {}
+};
 class TreeNodeArithmeticShiftRight : public TreeNodeBinary {
 public:
     TreeNodeArithmeticShiftRight(TreeNode *left, TreeNode *right)

@@ -98,6 +98,20 @@ Symbol *SymbolList::find(const char *name) {
     }
 }
 
+std::vector<Symbol> SymbolList::findSubstring(const char *name) {
+    std::vector<Symbol> syms;
+    for(auto symMap : symbolMap)
+    {
+        auto sym_name = symMap.first;
+        if(sym_name.find(name)  != std::string::npos)
+        {
+            syms.push_back(*(symMap.second));
+        }
+    }
+    return syms;
+}
+
+
 Symbol *SymbolList::find(address_t address) {
     auto it = spaceMap.find(address);
     if(it != spaceMap.end()) {
@@ -160,7 +174,26 @@ SymbolList *SymbolList::buildSymbolList(ElfMap *elfMap) {
 
     auto list = buildAnySymbolList(elfMap, ".symtab", SHT_SYMTAB);
     fixFunctionTypes(list, elfMap);
+    
+    //Fixing LLVM CFI symbol table where function sizes have to be 8
+    auto cfi_symbols = list->findSubstring(".cfi");
 
+    for(auto cfi_sym : cfi_symbols)
+    {
+        std::string cfi_symname = cfi_sym.getName();
+        std::string::size_type pos = cfi_symname.find('.');
+        if (pos != std::string::npos)
+        {
+            auto str = cfi_symname.substr(0, pos);
+            const char* edit_cfi_symname = str.c_str();
+            if(auto s = list->find(edit_cfi_symname))
+            {
+                s->setSize(8);
+            }
+        }
+       
+    }
+    
     if(auto s = findSizeZero(list, "_start")) {
 #ifdef ARCH_X86_64
         // s->setSize(42);  // no really! :)

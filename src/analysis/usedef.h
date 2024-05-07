@@ -12,7 +12,7 @@ class Module;
 class Function;
 class Instruction;
 class TreeNode;
-
+class MemLocation;
 class UDState;
 
 
@@ -35,6 +35,43 @@ public:
     ListType::const_iterator cbegin() const { return list.cbegin(); }
     ListType::const_iterator cend() const { return list.cend(); }
     void dump() const;
+};
+
+class MemLocation {
+private:
+    TreeNode *reg;
+    long int offset;
+
+public:
+    MemLocation(TreeNode *tree) : reg(nullptr), offset(0) { extract(tree); }
+
+
+    bool operator==(const MemLocation& other) const
+        { return this->reg->equal(other.reg) && this->offset == other.offset; }
+    bool operator!=(const MemLocation& other) const
+        { return !this->reg->equal(other.reg) || this->offset != other.offset; }
+    TreeNode *getRegTree() const { return reg; }
+    long int getOffset() { return offset; }
+private:
+    void extract(TreeNode *tree);
+};
+
+class MemDefList {
+    private :
+        TreeNode *lhs=NULL;
+        TreeNode* rhs=NULL;
+
+    public:
+        void set(TreeNode* lhs, TreeNode* rhs)
+        {
+            this->lhs = lhs;
+            this->rhs = rhs;
+        }
+        bool empty() const { return (lhs==NULL && rhs==NULL); }
+        TreeNode* getLHS() const { return lhs; }
+        TreeNode* getRHS() const { return rhs; }
+
+        void dump() const;
 };
 
 // May: evaluation must be delayed until all use-defs are determined
@@ -126,6 +163,9 @@ public:
     virtual const std::vector<UDState *>& getRegUse(int reg) const = 0;
     virtual const UseList &getRegUseList() const = 0;
 
+    virtual void addMemDefinition(TreeNode* lhs, TreeNode* rhs) = 0;
+    virtual const MemDefList& getMemDefinitionList() const = 0;
+
     virtual void addMemDef(int reg, TreeNode *tree) = 0;
     virtual TreeNode *getMemDef(int reg) const = 0;
     virtual const DefList& getMemDefList() const = 0;
@@ -181,6 +221,11 @@ public:
     virtual const UseList &getRegUseList() const
         { return regUseList; }
 
+    virtual void addMemDefinition(TreeNode* lhs, TreeNode* rhs) {}
+    virtual const MemDefList& getMemDefinitionList() const 
+    {
+        static MemDefList emptyList; return emptyList;
+    }
     virtual void addMemDef(int reg, TreeNode *tree) {}
     virtual TreeNode *getMemDef(int reg) const
         { return nullptr; }
@@ -209,11 +254,20 @@ private:
     DefList memList;
     RefList memRefList;
     UseList memUseList;
+    MemDefList memDefList;
 
 public:
     RegMemState(ControlFlowNode *node, Instruction *instruction)
         : RegState(node, instruction) {}
 
+    void addMemDefinition(TreeNode* lhs, TreeNode* rhs)
+    {
+        memDefList.set(lhs,rhs);
+    }
+    virtual const MemDefList& getMemDefinitionList() const 
+    {
+        return memDefList;
+    }
     virtual void addMemDef(int reg, TreeNode *tree)
         { memList.set(reg, tree); }
     virtual TreeNode *getMemDef(int reg) const
@@ -349,6 +403,7 @@ private:
     void fillRegToReg(UDState *state, AssemblyPtr assembly);
     void fillMemToReg(UDState *state, AssemblyPtr assembly, size_t width);
     void fillImmToReg(UDState *state, AssemblyPtr assembly);
+    void fillImmToMem(UDState *state, AssemblyPtr assembly);
     void fillRegRegToReg(UDState *state, AssemblyPtr assembly);
     void fillMemImmToReg(UDState *state, AssemblyPtr assembly);
     void fillRegToMem(UDState *state, AssemblyPtr assembly, size_t width);
@@ -457,22 +512,7 @@ private:
 #endif
 };
 
-class MemLocation {
-private:
-    TreeNode *reg;
-    long int offset;
 
-public:
-    MemLocation(TreeNode *tree) : reg(nullptr), offset(0) { extract(tree); }
-    bool operator==(const MemLocation& other) const
-        { return this->reg->equal(other.reg) && this->offset == other.offset; }
-    bool operator!=(const MemLocation& other) const
-        { return !this->reg->equal(other.reg) || this->offset != other.offset; }
-    TreeNode *getRegTree() const { return reg; }
-    long int getOffset() { return offset; }
-private:
-    void extract(TreeNode *tree);
-};
 
 class StateGroup {
 public:

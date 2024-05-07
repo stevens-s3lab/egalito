@@ -89,6 +89,8 @@ void ElfMap::verifyElf() {
 void ElfMap::makeSectionMap() {
     char *charmap = static_cast<char *>(map);
     ElfXX_Ehdr *header = (ElfXX_Ehdr *)map;
+    LOG(1, sizeof(ElfXX_Shdr) << " " << header->e_shentsize);
+    
     if(sizeof(ElfXX_Shdr) != header->e_shentsize) {
         throw "header shentsize mismatch\n";
     }

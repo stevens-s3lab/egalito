@@ -136,6 +136,7 @@ public:
     bool add(Symbol *symbol, size_t index);
     void addAlias(Symbol *symbol, size_t otherIndex);
     Symbol *get(size_t index);
+    std::vector<Symbol> findSubstring(const char *name);
     Symbol *find(const char *name);
     Symbol *find(address_t address);
     size_t getCount() const { return symbolList.size(); }
