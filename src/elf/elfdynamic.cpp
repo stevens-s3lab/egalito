@@ -223,12 +223,15 @@ void ElfDynamic::resolveLibraries() {
 void ElfDynamic::processLibrary(const std::string &fullPath,
     const std::string &filename, Library *depend) {
 
+   int isLdEnabled = isFeatureEnabled("ENABLE_LD");
+
     if(filename == "ld-linux-x86-64.so.2"
         || filename == "ld-linux-aarch64.so.1"
         || filename == "ld-linux-riscv64-lp64d.so.1") {
 
         LOG(2, "    skipping processing of ld.so for now");
-        //return;
+	if (!isLdEnabled)
+        	return;
     }
     if(!isFeatureEnabled("EGALITO_USE_DISASM")) {
         if(filename == "libcapstone.so.4" || filename == "libcapstone.so.3") {
