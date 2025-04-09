@@ -130,6 +130,7 @@ public:
 
     DataVariable *findVariable(const std::string &name);
     DataVariable *findVariable(address_t address);
+    DataVariable *findVariableContaining(address_t address);
 
     size_t getAlignment() const { return alignment; }
     void setAlignment(size_t align) { alignment = align; }
@@ -253,6 +254,7 @@ public:
 
     DataVariable *findVariable(const std::string &name);
     DataVariable *findVariable(address_t address);
+    DataVariable *findVariableContaining(address_t address);
 
     virtual void serialize(ChunkSerializerOperations &op,
         ArchiveStreamWriter &writer);
