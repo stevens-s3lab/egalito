@@ -1,5 +1,5 @@
 #include <stdlib.h>  // for mkstemp
-#include <string.h>  // for strcpy
+#include <string.h>  // for strncpy
 #include <unistd.h>  // for execv, unlink
 #include "chunk/serializer.h"
 #include "conductor/conductor.h"
@@ -30,8 +30,9 @@ void executeLoader(ConductorSetup *setup, Arguments args) {
 
     size_t i = 2;
     for(const std::string &arg : args) {
-        char *str = new char [arg.length() + 1];
-        strcpy(str, arg.c_str());
+        const size_t nameSize = arg.length() + 1;
+        char *str = new char [nameSize];
+        strncpy(str, arg.c_str(), nameSize);
         argv[i ++] = str;
     }
     argv[i] = nullptr;

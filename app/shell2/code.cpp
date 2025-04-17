@@ -3,6 +3,7 @@
 #include <functional>
 #include <cstdio>
 #include <cstdlib>
+#include <experimental/filesystem>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -144,9 +145,9 @@ FullCommandList::FullCommandList(EgalitoInterface *egalito) {
             int fd = mkstemp(tmpl);
             
             std::snprintf(pfnam, TPATH_MAX-1, "/proc/self/fd/%d", fd);
-            readlink(tfnam, pfnam, TPATH_MAX-1);
+            auto fs_path = std::experimental::filesystem::read_symlink(pfnam);
             close(fd); 
-            std::string output = tfnam;
+            std::string output = fs_path.string();
 
             bool uniongen;
             if(args.getBool("-m")) uniongen = false;
@@ -294,7 +295,8 @@ bool FullCommandList::runCommandN(const char *file, ShellState &state,
         char buffer[BUFSIZ];
         ssize_t n = 0;
         std::string line;
-        if(in) while(std::getline(*in, line)) {
+        if (in)
+            while (std::getline(*in, line)) {
             //std::cout << "write [" << line << "]\n";
             line += '\n';
             write(p1[PIPE_WRITE], line.c_str(), line.length());
