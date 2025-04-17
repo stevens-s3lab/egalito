@@ -10,6 +10,7 @@ EGALITO_ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 #   PROFILE=1
 #   STACK_PROTECTOR=1
 
+USE_LOADER=0
 # To cross-compile, set e.g. CROSS=aarch64-linux-gnu-
 #   for loader support, also set RTLD_TARGET to an appropriate simulator for
 #   running binaries (e.g. qemu-user-*).
@@ -73,11 +74,11 @@ endif
 
 OPT_FLAGS       = -g3 -Og
 DEPFLAGS        = -MT '$@ $(@:.o=.so) $(@:.o=.d)' -MMD -MF $(@:.o=.d) -MP
-CFLAGS          = -std=gnu99 $(GENERIC_FLAGS) $(OPT_FLAGS)
-CXXFLAGS        = -std=c++14 $(GENERIC_FLAGS) $(OPT_FLAGS)
+CFLAGS          = -std=gnu99 -lstdc++fs $(GENERIC_FLAGS) $(OPT_FLAGS)
+CXXFLAGS        = -std=c++17 $(GENERIC_FLAGS) $(OPT_FLAGS)
 CLDFLAGS        = $(CROSSLD)
 
-CLDFLAGS		+= -L $(CAPSTONE_DIR)/lib -lcapstone \
+CLDFLAGS		+= -L $(CAPSTONE_DIR)/lib -lcapstone -lstdc++fs \
 	-Wl,-rpath,$(abspath $(CAPSTONE_DIR)/lib)
 
 ifdef USE_KEYSTONE  # set USE_KEYSTONE=1 to link with str->instr assembler
