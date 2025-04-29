@@ -132,8 +132,9 @@ void TwocodeMergePass::copyFunctionsTo(Module *module) {
     for(auto otherFunc : transformed) {
         otherFunc->setName(otherFunc->getName() + "$rhs");
 
-        char *name = new char[otherFunc->getName().length() + 1];
-        std::strcpy(name, otherFunc->getName().c_str());
+        const size_t nameSize = otherFunc->getName().length() + 1;
+        char *name = new char[nameSize];
+        std::strncpy(name, otherFunc->getName().c_str(), nameSize);
         otherFunc->getSymbol()->setName(name);
 
         otherModule->getFunctionList()->getChildren()->getIterable()->remove(otherFunc);

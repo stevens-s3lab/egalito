@@ -1,6 +1,8 @@
 #include <cstring>
 #include <fstream>
 #include <sys/stat.h>
+#include <ext/stdio_filebuf.h>
+#include <unistd.h>
 #include "concrete.h"
 #include "modulegen.h"
 #include "sectionlist.h"
@@ -1205,8 +1207,8 @@ void ElfFileWriter::updateOffsets() {
 }
 
 void ElfFileWriter::serialize() {
-    std::ofstream fs(filename, std::ios::out | std::ios::binary);
-    if(!fs.is_open()) {
+    auto fptr = fopen(filename.c_str(), "w");
+    if(fptr == nullptr) {
         LOG(0, "Cannot open executable file [" << filename << "]");
         std::cerr << "Cannot open executable file [" << filename << "]" << std::endl;
         LOG(0, "");
@@ -1214,6 +1216,10 @@ void ElfFileWriter::serialize() {
         LOG(0, "**** PLEASE RE-RUN WITH DIFFERENT OUTPUT FILENAME! ****");
         return;
     }
+
+    int fd = fileno(fptr);
+    __gnu_cxx::stdio_filebuf<char> filebuf(fd, std::ios::out);
+    std::ostream fs(&filebuf);
     for(auto section : *getSectionList()) {
         LOG(1, "serializing " << section->getName()
             << " @ " << std::hex << section->getOffset()
@@ -1223,8 +1229,9 @@ void ElfFileWriter::serialize() {
         }
         fs << *section;
     }
-    fs.close();
-    chmod(filename.c_str(), 0744);
+    fs.flush();
+    fchmod(fd, 0744);
+    close(fd);
 }
 
 MakePaddingSection::MakePaddingSection(size_t desiredAlignment, bool isIsolatedPadding)

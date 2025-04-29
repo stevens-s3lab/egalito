@@ -133,9 +133,9 @@ void TwocodeVarsPass::addVariable(DataSection *section, Chunk *target,
         Symbol *targetSymbol = nullptr;
         Symbol *nsymbol = nullptr;
         if(auto function = dynamic_cast<Function *>(target)) {
-            char *name = new char[function->getName().length() + std::strlen(suffix) + 1];
-            std::strcpy(name, function->getName().c_str());
-            std::strcat(name, suffix);
+            const size_t nameSize = function->getName().length() + std::strlen(suffix) + 1;
+            char *name = new char[nameSize];
+            std::snprintf(name, nameSize, "%s%s", function->getName(), suffix);
 
             nsymbol = new Symbol(
                 function->getAddress(), VAR_SIZE, name,

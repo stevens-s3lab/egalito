@@ -40,7 +40,12 @@ public:
 private:
     address_t address;
     size_t size;
-    const char *name;
+    // GT Change: we switched this to std::string from const char *.
+    // The original just continued to point to whatever was passed
+    // to the constructor without any regard for ownership or lifetime
+    // of what got passed. Now, just create our own copy here that
+    // will be freed when the Symbol is destructed.
+    std::string name;
     SymbolVersion *version;
     Symbol *aliasFor;
     std::vector<Symbol *> aliasList;
@@ -57,7 +62,7 @@ public:
 
     address_t getAddress() const { return address; }
     size_t getSize() const { return size; }
-    const char *getName() const { return name; }
+    const char *getName() const { return name.c_str(); }
     const SymbolVersion *getVersion() const { return version; }
     SymbolType getType() const { return symbolType; }
     BindingType getBind() const { return bindingType; }

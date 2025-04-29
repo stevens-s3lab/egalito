@@ -107,8 +107,9 @@ Link *ProfileInstrumentPass::addVariable(DataSection *section, Function *functio
     auto var = new GlobalVariable("__counter_" + function->getName());
     var->setPosition(new AbsolutePosition(section->getAddress()+section->getSize()));
 
-    char *name = new char[var->getName().length() + 1];
-    std::strcpy(name, var->getName().c_str());
+    const size_t nameSize = var->getName().length() + 1;
+    char *name = new char[nameSize];
+    std::strncpy(name, var->getName().c_str(), nameSize);
 
     auto nsymbol = new Symbol(
         var->getAddress(), VAR_SIZE, name,

@@ -107,8 +107,9 @@ SymbolTableContent::DeferredType *SymbolTableContent
     ::addSymbol(Function *func, Symbol *sym) {
 
     if(!sym) {
-        char *name = new char[func->getName().length() + 1];
-        std::strcpy(name, func->getName().c_str());
+        const size_t nameSize = func->getName().length() + 1;
+        char *name = new char[nameSize];
+        std::strncpy(name, func->getName().c_str(), nameSize);
         sym = new Symbol(0, 0, name,
             Symbol::TYPE_FUNC, Symbol::BIND_GLOBAL, 0, SHN_UNDEF);
     }
@@ -610,8 +611,9 @@ Section *DataRelocSectionContent::getTargetSection() {
 static Symbol *makeSymbol(const std::string &targetName,
     Symbol::SymbolType symbolType, Symbol::BindingType bindType) {
 
-    char *name = new char[targetName.length() + 1];
-    std::strcpy(name, targetName.c_str());
+    const size_t nameSize = targetName.length() + 1;
+    char *name = new char[nameSize];
+    std::strncpy(name, targetName.c_str(), nameSize);
     return new Symbol(0, 0, name, symbolType, bindType, 0, SHN_UNDEF);
 }
 
@@ -780,8 +782,9 @@ DataRelocSectionContent::DeferredType *DataRelocSectionContent
             //rela->r_offset = extSym->getAddress();
             symbolAddress = dataSection->getAddress() + offset;
         }
-        char *name = new char[targetName.length() + 1];
-        std::strcpy(name, targetName.c_str());
+        const size_t nameSize = targetName.length() + 1;
+        char *name = new char[nameSize];
+        std::strncpy(name, targetName.c_str(), nameSize);
         symbol = new Symbol(
             symbolAddress, var->getTargetSymbol()->getSize(), name,
             var->getTargetSymbol()->getType(),
@@ -823,8 +826,9 @@ DataRelocSectionContent::DeferredType *DataRelocSectionContent
 
     auto targetName = extSym->getName();
 
-    char *name = new char[targetName.length() + 1];
-    std::strcpy(name, targetName.c_str());
+    const size_t nameSize = targetName.length() + 1;
+    char *name = new char[nameSize];
+    std::strncpy(name, targetName.c_str(), nameSize);
 
     auto symbol = new Symbol(
         var->getAddress(), var->getTargetSymbol()->getSize(), name,
