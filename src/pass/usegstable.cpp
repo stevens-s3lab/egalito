@@ -258,9 +258,13 @@ void UseGSTablePass::rewriteTailRecursion(Block *block, Instruction *instr) {
         ControlFlowInstruction *cfi = nullptr;
         // source instruction must be 'instr', because of
         // insertBeforeJumpTo() used below
-        if(i->getMnemonic() == "ja") {          // opposite: jna == jbe
+        if (i->getMnemonic() == "jno") {  // opposite: jo
             cfi = new ControlFlowInstruction(
-                X86_INS_JBE, instr, "\x0f\x86", "jbe", 4);
+                X86_INS_JO, instr, "\x0f\x80", "jo", 4);
+        }
+        else if (i->getMnemonic() == "jo") {  // opposite: jno
+            cfi = new ControlFlowInstruction(
+                X86_INS_JNO, instr, "\x0f\x81", "jno", 4);
         }
         else if(i->getMnemonic() == "jae") {    // opposite: jnae == jb
             cfi = new ControlFlowInstruction(
@@ -270,14 +274,55 @@ void UseGSTablePass::rewriteTailRecursion(Block *block, Instruction *instr) {
             cfi = new ControlFlowInstruction(
                 X86_INS_JAE, instr, "\x0f\x83", "jae", 4);
         }
+        else if (i->getMnemonic() == "jne") {  // opposite: je
+            cfi = new ControlFlowInstruction(
+                X86_INS_JE, instr, "\x0f\x84", "je", 4);
+        }
         else if(i->getMnemonic() == "je") {     // opposite: jne
             cfi = new ControlFlowInstruction(
                 X86_INS_JNE, instr, "\x0f\x85", "jne", 4);
         }
-        else if(i->getMnemonic() == "jne") {    // opposite: je
+        else if (i->getMnemonic() == "ja") {  // opposite: jna == jbe
             cfi = new ControlFlowInstruction(
-                X86_INS_JE, instr, "\x0f\x84", "je", 4);
+                X86_INS_JBE, instr, "\x0f\x86", "jbe", 4);
         }
+        else if (i->getMnemonic() == "jbe") {  // opposite: ja
+            cfi = new ControlFlowInstruction(
+                X86_INS_JA, instr, "\x0f\x87", "ja", 4);
+        }
+        else if (i->getMnemonic() == "jns") {  // opposite: js
+            cfi = new ControlFlowInstruction(
+                X86_INS_JS, instr, "\x0f\x88", "js", 4);
+        }
+        else if (i->getMnemonic() == "js") {  // opposite: jns
+            cfi = new ControlFlowInstruction(
+                X86_INS_JNS, instr, "\x0f\x89", "jns", 4);
+        }
+        else if (i->getMnemonic() == "jnp") {  // opposite: jp
+            cfi = new ControlFlowInstruction(
+                X86_INS_JP, instr, "\x0f\x8a", "jp", 4);
+        }
+        else if (i->getMnemonic() == "jp") {  // opposite: jnp
+            cfi = new ControlFlowInstruction(
+                X86_INS_JNP, instr, "\x0f\x8b", "jnp", 4);
+        }
+        else if (i->getMnemonic() == "jge") {  // opposite: jl
+            cfi = new ControlFlowInstruction(
+                X86_INS_JL, instr, "\x0f\x8c", "jl", 4);
+        }
+        else if (i->getMnemonic() == "jl") {  // opposite: jge
+            cfi = new ControlFlowInstruction(
+                X86_INS_JGE, instr, "\x0f\x8d", "jge", 4);
+        }
+        else if (i->getMnemonic() == "jg") {  // opposite: jle
+            cfi = new ControlFlowInstruction(
+                X86_INS_JLE, instr, "\x0f\x8e", "jle", 4);
+        }
+        else if (i->getMnemonic() == "jle") {  // opposite: jg
+            cfi = new ControlFlowInstruction(
+                X86_INS_JG, instr, "\x0f\x8f", "jg", 4);
+        }
+
         else {
             LOG(0, "WARNING: conditional jump? " << i->getMnemonic()
                 << " at " << std::hex << instr->getAddress());
