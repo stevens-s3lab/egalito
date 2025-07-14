@@ -57,7 +57,7 @@ public:
 
     void add(Reloc *reloc);
     int getInfoLink() const { return infoLink; }
-
+    std::string getName() { return name; }
     ListType::iterator begin() { return relocList.begin(); }
     ListType::iterator end() { return relocList.end(); }
 };
