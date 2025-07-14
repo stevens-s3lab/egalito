@@ -551,6 +551,16 @@ void PLTList::parsePLTNonLazy(const char *sectionName, const size_t entrySize,
                 pltList->getChildren()->add(new PLTTrampoline(
                     pltList, pltAddress, externalSymbol, value, true));
             }
+
+	    if(r && !r->getSymbol())
+	    {
+		    LOG(0,"Adding newSymbol for "<<sectionName<<" entry at "<<pltAddress);
+		    auto newSymbolName = "unresolved_plt_"+ std::to_string(pltAddress);
+		    auto newSymbol =  new Symbol(value,0,newSymbolName.c_str(),Symbol::TYPE_UNKNOWN, Symbol::BIND_GLOBAL, 0,0);
+		    auto externalSymbol = ExternalSymbolFactory(module)
+                                          .makeExternalSymbol(newSymbol);
+		    pltList->getChildren()->add(new PLTTrampoline(pltList, pltAddress, externalSymbol, value, true));
         }
+
     }
 }

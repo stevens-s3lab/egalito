@@ -19,16 +19,53 @@ void ResolvePLTPass::visit(PLTList *pltList) {
     recurse(pltList);
 }
 
-void ResolvePLTPass::visit(PLTTrampoline *pltTrampoline) {
+void ResolvePLTPass::visit(PLTTrampoline * ) {
     if(pltTrampoline->getTarget()) return;  // already resolved
 
+    Chunk *target = nullptr;
     auto symbol = pltTrampoline->getExternalSymbol();
+	
     auto link = PerfectLinkResolver().resolveExternallyStrongWeak(
         symbol, conductor, module, true);
-    Chunk *target = nullptr;
     if(link) {
         target = link->getTarget();
         delete link;
+    }
+
+    if(symbol->getName().rfind("unresolved_plt", 0) == 0)
+    {
+	    auto address = pltTrampoline->getGotPLTEntry();
+	    LOG(1, "Processing "<<symbol->getName()<<" "<<symbol<<" @ "<<address);
+	    auto ds = module->getDataRegionList()->findDataSectionContaining(address);
+	    if(ds->getType() == DataSection:: TYPE_DATA)
+	    {
+		    LOG(1,"Address "<<std::hex<<address<<" DS data");
+		    for(auto dv : CIter::children(ds))
+		    {
+			    if(dv->getAddress() != address)
+				    continue;
+			    LOG(1, "DV address "<<dv->getAddress()<<" "<<dv->getName());
+			    auto dvLink = dv->getDest();
+			    if(dvLink)
+			    {
+				    //LOG(1, "DV Link");
+				    if(dvLink->getTarget())
+				    {
+					    //LOG(1, "DV Target"<<dvLink->getTargetAddress());
+					    if(auto link_target = dynamic_cast<Function *>(&*dvLink->getTarget()))
+					    {
+						    symbol->setResolved(link_target);
+						    symbol->setName(link_target->getName());
+                                                    target = link_target;
+                                                    LOG(1, "Fixed: Resolved unresolved PLT to "<<link_target->getName());
+						    break;
+					    }
+				    }
+			    }
+		    }
+	    }
+
+
     }
 
     if(!target) {
