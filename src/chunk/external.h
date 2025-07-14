@@ -29,6 +29,7 @@ public:
         : name(name), type(type), bind(bind), version(version),
         localWeakInstance(localWeakInstance), resolved(nullptr), resolvedModule(nullptr) {}
 
+    void setName(std::string name) { this->name = name; }
     std::string getName() const { return name; }
     void setResolved(Chunk *chunk) { this->resolved = chunk; }
     Chunk *getResolved() const { return resolved; }

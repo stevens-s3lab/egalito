@@ -44,8 +44,11 @@ void IFuncPLTs::visit(PLTTrampoline *trampoline) {
             callSem->setLink(new NormalLink(trampoline->getTarget(), Link::SCOPE_EXTERNAL_JUMP));
         }
         else {
+	    if(trampoline->getExternalSymbol())
+	    {
             LOG(1, "creating IFUNC plt contents pointing to unresolved target! ["
                 << trampoline->getExternalSymbol()->getName() << "]");
+	    }
             callSem->setLink(new UnresolvedLink(0x0));
         }
         call->setSemantic(callSem);

@@ -76,6 +76,8 @@ void CollapsePLTPass::visit(Instruction *instr) {
 
         if(trampoline->isIFunc()) {
             auto name = trampoline->getExternalSymbol()->getName();
+	    if(!trampoline->getExternalSymbol())
+		    return;
             auto it = ifuncMap.find(name);
             if(it != ifuncMap.end()) {
                 LOG(10, "resolving IFunc " << name
@@ -96,9 +98,12 @@ void CollapsePLTPass::visit(Instruction *instr) {
             delete pltLink;
         }
         else {
+	    if(trampoline->getExternalSymbol())
+	    {
             assert(trampoline->getExternalSymbol());
             LOG(9, "Unresolved PLT entry from " << instr->getName()
                 << " to [" << trampoline->getExternalSymbol()->getName() << "]");
+	    }
         }
     }
 }
