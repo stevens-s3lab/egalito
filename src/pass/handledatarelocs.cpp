@@ -231,7 +231,12 @@ Link *HandleDataRelocsPass::resolveVariableLink(Reloc *reloc, Module *module) {
                 if(auto dlink = dynamic_cast<DataOffsetLink *>(link)) {
                     dlink->setAddend(reloc->getAddend());
                 }
-                else {
+                else if(auto dlink = dynamic_cast<NormalLink *>(link)) {
+			LOG(1, reloc->getAddend()<<" "<<reloc->getSymbolName()<<" "<<reloc->getType()<<" points to NormalLink");
+		}
+		else
+		{
+		    LOG(0,reloc->getAddend()<<" "<<reloc->getSymbolName()<<" "<<reloc->getType()<<" "<<typeid(*link).name());
                     throw "resolveVariableLink: unexpected addend > 0";
                 }
             }
