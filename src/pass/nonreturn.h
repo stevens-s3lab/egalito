@@ -4,6 +4,7 @@
 #include <set>
 #include "chunkpass.h"
 
+class ControlFlowGraph;
 class ControlFlowInstruction;
 class UDState;
 
@@ -11,7 +12,8 @@ class NonReturnFunction : public ChunkPass {
 private:
     const static std::vector<std::string> knownList;
     std::set<Function *> nonReturnList;
-
+    std::map<Block*,int> noreturn_done;  //To keep track of blocks whose nonreturn are evaluated
+					 //
 public:
     NonReturnFunction() {}
     virtual void visit(FunctionList *functionList);
@@ -20,7 +22,7 @@ private:
     bool neverReturns(Function *function);
     bool hasLinkToNeverReturn(ControlFlowInstruction *cfi);
     bool inList(Function *function);
-
+    int isNonReturn(ControlFlowGraph *cfg, Block* bl, std::set<Block*> visited);
     bool hasLinkToGNUError(ControlFlowInstruction *cfi);
     std::tuple<bool, int> getArg0Value(UDState *state);
 };

@@ -104,7 +104,84 @@ void NonReturnFunction::visit(Function *function) {
     }
 }
 
-bool NonReturnFunction::neverReturns(Function *function) {
+int NonReturnFunction::isNonReturn(ControlFlowGraph *cfg, Block* bl, std::set<Block*> visited)
+{
+    int ret = 1;    //Assume it is non-return
+
+    auto noreturn_iter = noreturn_done.find(bl);
+    if(noreturn_iter != noreturn_done.end())
+    {
+        return noreturn_iter->second;
+    }
+    if(visited.count(bl) != 0)  //If already visited in this path
+    {
+        //cout<<std::hex <<bl->getAddress()<<" returning -1 A"<<endl;
+        return -1;
+    }
+    visited.insert(bl);
+
+    for(auto instr : CIter::children(bl))
+    {
+        if(auto cfi = dynamic_cast<ControlFlowInstruction *>(
+                instr->getSemantic()))
+        {
+            if(hasLinkToNeverReturn(cfi))
+            {
+                cfi->setNonreturn();
+            }
+            if(cfi->getMnemonic() != "jmp" && cfi->getMnemonic() != "callq")
+            {
+                if(auto target = dynamic_cast<Function *>(&*cfi->getLink()->getTarget())) //if cfg is a conditional jump to a function
+                {
+                    if(cfi->returns())
+                        ret = 0;
+                    break;
+                }
+            }
+            if(!cfi->returns())   //Non-returning
+            {
+                //cout<<std::hex <<bl->getAddress()<<" returning 1 B"<<endl;
+                return 1;
+            }
+        }
+    }
+    bool endNode = true;
+    auto node_id = cfg->getIDFor(bl);
+    auto node = cfg->get(node_id);
+    for(auto& link : node->forwardLinks())
+    {
+        endNode = false;
+        auto cflink = dynamic_cast<ControlFlowLink *>(&*link);
+        auto dest_id = cflink->getTargetID();
+        auto dest_node = (cfg->get(dest_id))->getBlock();
+        int t = isNonReturn(cfg, dest_node, visited);
+        if(t == -1)
+            continue;
+        ret = ret & t;          //Even if one path is returning, this would make the block returning
+    }
+    if(endNode)
+        ret = 0;
+    //cout<<std::hex <<bl->getAddress()<<" returning "<<ret<<endl;
+    noreturn_done[bl] = ret;
+    return ret;
+}
+
+bool NonReturnFunction::neverReturns(Function *function)
+{
+	bool isNonReturnFlag = false;
+	ControlFlowGraph *cfg = new ControlFlowGraph(function);
+	auto start_bl = (cfg->get(0))->getBlock();
+    	std::set<Block*> visited;
+	noreturn_done.clear();
+        int ret = isNonReturn(cfg, start_bl, visited);
+        if(ret == 1)
+        {
+		isNonReturnFlag = true;
+        }
+	return isNonReturnFlag;
+}
+
+/*bool NonReturnFunction::neverReturns(Function *function) {
     ControlFlowGraph *cfg = nullptr;
     Dominance *dom = nullptr;
     for(auto block : CIter::children(function)) {
@@ -146,10 +223,14 @@ bool NonReturnFunction::neverReturns(Function *function) {
 bool NonReturnFunction::hasLinkToNeverReturn(ControlFlowInstruction *cfi) {
     if(auto pltLink = dynamic_cast<PLTLink *>(cfi->getLink())) {
         auto trampoline = pltLink->getPLTTrampoline();
+	if(trampoline->getExternalSymbol())
+	{
         auto pltName = trampoline->getExternalSymbol()->getName();
         for(auto name : knownList) {
-            if(pltName == name) {
+            		if(pltName == name) 
+			{
                 return true;
+            		}
             }
         }
     }
@@ -169,8 +250,11 @@ bool NonReturnFunction::hasLinkToNeverReturn(ControlFlowInstruction *cfi) {
 bool NonReturnFunction::hasLinkToGNUError(ControlFlowInstruction *cfi) {
     if(auto pltLink = dynamic_cast<PLTLink *>(cfi->getLink())) {
         auto trampoline = pltLink->getPLTTrampoline();
+	if(trampoline->getExternalSymbol())
+	{
         auto pltName = trampoline->getExternalSymbol()->getName();
         return pltName == std::string("error");
+	}
     }
     else if(auto target = dynamic_cast<Function *>(
         &*cfi->getLink()->getTarget())) {
