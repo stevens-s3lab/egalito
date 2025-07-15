@@ -560,7 +560,7 @@ void PLTList::parsePLTNonLazy(const char *sectionName, const size_t entrySize,
 		    auto externalSymbol = ExternalSymbolFactory(module)
                                           .makeExternalSymbol(newSymbol);
 		    pltList->getChildren()->add(new PLTTrampoline(pltList, pltAddress, externalSymbol, value, true));
-        }
-
+            }
+    	}
     }
 }
