@@ -218,7 +218,7 @@ bool NonReturnFunction::neverReturns(Function *function)
     delete cfg;
     delete dom;
     return false;
-}
+} */
 
 bool NonReturnFunction::hasLinkToNeverReturn(ControlFlowInstruction *cfi) {
     if(auto pltLink = dynamic_cast<PLTLink *>(cfi->getLink())) {

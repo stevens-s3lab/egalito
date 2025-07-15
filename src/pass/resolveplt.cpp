@@ -19,7 +19,7 @@ void ResolvePLTPass::visit(PLTList *pltList) {
     recurse(pltList);
 }
 
-void ResolvePLTPass::visit(PLTTrampoline * ) {
+void ResolvePLTPass::visit(PLTTrampoline *pltTrampoline) {
     if(pltTrampoline->getTarget()) return;  // already resolved
 
     Chunk *target = nullptr;
