@@ -170,6 +170,10 @@ bool NonReturnFunction::neverReturns(Function *function)
 {
 	bool isNonReturnFlag = false;
 	ControlFlowGraph *cfg = new ControlFlowGraph(function);
+	if(!cfg)
+		return isNonReturnFlag;
+	if(cfg->get(0) == NULL)
+		return isNonReturnFlag;
 	auto start_bl = (cfg->get(0))->getBlock();
     	std::set<Block*> visited;
 	noreturn_done.clear();
