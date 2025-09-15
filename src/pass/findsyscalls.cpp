@@ -19,6 +19,8 @@ void FindSyscalls::visit(Function *function) {
     if (isSyscallFunction(function)) return;
 
     auto graph = new ControlFlowGraph(function);
+    if(graph->get(0) == NULL)		//Check for empty functions
+	    return;
     auto config = new UDConfiguration(graph);
     auto working = new UDRegMemWorkingSet(function, graph);
     auto usedef = new UseDef(config, working);

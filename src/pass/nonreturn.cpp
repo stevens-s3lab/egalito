@@ -170,7 +170,7 @@ bool NonReturnFunction::neverReturns(Function *function)
 {
 	bool isNonReturnFlag = false;
 	ControlFlowGraph *cfg = new ControlFlowGraph(function);
-	if(!cfg)
+	if(cfg == NULL)
 		return isNonReturnFlag;
 	if(cfg->get(0) == NULL)
 		return isNonReturnFlag;
