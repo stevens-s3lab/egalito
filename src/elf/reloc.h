@@ -6,6 +6,10 @@
 #include <string>
 #include <elf.h>
 
+#ifndef SHT_RELR
+#define SHT_RELR 19
+#endif
+
 #include "types.h"
 #include "elf/elfmap.h"
 #include "elf/elfxx.h"
