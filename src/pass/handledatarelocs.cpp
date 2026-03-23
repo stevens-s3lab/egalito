@@ -169,6 +169,45 @@ Link *HandleDataRelocsPass::resolveVariableLink(Reloc *reloc, Module *module) {
             return nullptr;
         }
     }
+    else if(reloc->getType() == R_X86_64_JUMP_SLOT) {
+        if(reloc->getAddend() != 0) {
+            // Non-zero addend is a data reference (e.g. calloc + 28454),
+            // not a function call. Store as ExternalSymbolLink with offset.
+            LOG(0, "processing R_X86_64_JUMP_SLOT with addend ("
+                << std::hex << reloc->getAddress()
+                << ") in " << module->getName()
+                << ", symbol=" << reloc->getSymbol()->getName()
+                << ", addend=" << std::dec << reloc->getAddend());
+            auto externalSymbol = ExternalSymbolFactory(module)
+                .makeExternalSymbol(reloc->getSymbol());
+            return new ExternalSymbolLink(externalSymbol, reloc->getAddend());
+        }
+        if(!internal) {
+            LOG(0, "processing R_X86_64_JUMP_SLOT ("
+                << std::hex << reloc->getAddress()
+                << ") in " << module->getName());
+            auto l = PerfectLinkResolver().resolveExternally(
+                reloc->getSymbol(), conductor, module, weak, false, true);
+            if(!l) {
+                l = PerfectLinkResolver().resolveInternally(reloc, module, weak, false);
+            }
+            LOG(0, "link is " << l);
+            return l;
+        }
+        else {
+            LOG(0, "checking JUMP_SLOT relocation ["
+                << reloc->getSymbol()->getName() << "] for internal link");
+            auto l = PerfectLinkResolver().resolveInternally(reloc, module, weak, false);
+            if(auto v = dynamic_cast<AbsoluteDataLink *>(l)) {
+                auto externalSymbol = ExternalSymbolFactory(module)
+                    .makeExternalSymbol(reloc->getSymbol());
+                auto newLink = new InternalAndExternalDataLink(externalSymbol, v);
+                delete v;
+                return newLink;
+            }
+            return nullptr;
+        }
+    }
     else if(reloc->getType() == R_X86_64_64) {
         // want a non-relative lookup
         auto l =  PerfectLinkResolver().resolveInternally(reloc, module, weak, false);
