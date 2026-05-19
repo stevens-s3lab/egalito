@@ -735,6 +735,18 @@ bool JumptableDetection::parseTableAccess(UDState *state, int reg,
 auto JumptableDetection::parseBaseAddress(UDState *state, int reg)
     -> std::tuple<bool, address_t> {
 
+    // Stop cyclic use-def chains from recursing indefinitely.
+    auto lookup = std::make_pair(state, reg);
+    if(activeBaseAddressLookups.count(lookup)) {
+        return std::make_tuple(false, 0);
+    }
+    activeBaseAddressLookups.insert(lookup);
+    struct LookupGuard {
+        std::set<std::pair<UDState *, int>>& active;
+        std::pair<UDState *, int> lookup;
+        ~LookupGuard() { active.erase(lookup); }
+    } guard {activeBaseAddressLookups, lookup};
+
     LOG(10, "[TableBase] looking for reference in 0x" << std::hex
         << state->getInstruction()->getAddress()
         << " register " << std::dec << reg);
